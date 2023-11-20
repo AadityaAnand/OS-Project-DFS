@@ -1,32 +1,23 @@
 import socket
 
-# HOST = '192.168.56.1' 
+HEADER = 64
+PORT = 5050
+FORMAT = 'utf-8'
+DISSCONNECT_MESSAGE = "!DISCONNECT"
+SERVER = "192.168.56.1"
+ADDR = (SERVER, PORT)
 
-HOST = socket.gethostbyname(socket.gethostname())
-PORT = 9099
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(ADDR)
 
+def send(msg):
+    message = msg.encode(FORMAT)
+    msg_length = len(message)
+    send_length = str(msg_length).encode(FORMAT)
+    send_length += b' ' * (HEADER - len(send_length))
+    client.send(send_length)
+    client.send(message)
+    print(client.recv(2048).decode(FORMAT))
 
-def main():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((HOST, PORT))
-    print(f"Clinet is Connected to server at {HOST}:{PORT}")
-
-    connected = True
-    while connected:
-        message = input("> ")
-
-        client.send(message.encode('utf-8'))
-
-        if message == "disconnect":
-            connected = False
-        else:
-            message = client.recv(1024).decode('utf-8')
-            print(f"server {message}")
-
-
-
-if __name__ == "__main__":
-    main()
-
-# socket.send("Hello World!".encode('utf-8'))
-# print(socket.recv(1024).decode('utf-8'))
+send("Hello World!")
+input()
