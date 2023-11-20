@@ -6,7 +6,7 @@ HOST = socket.gethostbyname(socket.gethostname())
 # HOST = '192.168.56.1'
 PORT = 9099
 
-
+#hsndle client function
 def handle_client(communcation_socket, address):
     print(f'[New Connection] {address} connected.')
     # Initialized a new connection
