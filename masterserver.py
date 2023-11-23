@@ -109,3 +109,102 @@ class Master():
                 # Save chunk ID counter
                 pickle.dump(self.chunk_id_counter, log_file)
             print('Metadata successfully saved to log file:', log_file_path)
+
+        """
+        background_thread:
+        
+        Continously runs to handle varoius background tasks.
+        """
+        def background_thread(self, interval): #Time nterval for sleep between runs
+            while True:
+                self.garbage_collect()
+                self.heartbeats_check()
+                self.chunks_replicate()
+                time.sleep(interval)
+            
+        """
+        heartbeats_checks:
+        Runs in the backgraound thread to check whether chunksrevers have not sent hearbeat recently. 
+        If a chunkserver has not sent a heartbeat, we can assume it is down and remove it from the metadata.
+        """
+
+        def heartbeats_check(self):
+            url_to_delete = []
+            for url in self.url_heartbeat_time:
+                last_heartbeat = self.url_heartbeat_time[url]
+                heartbeat_expire = last_heartbeat + self.thread_interval + 5
+                if time.time() > heartbeat_expire:
+                    print('No heartbeat received from', url)
+                    self.remove_chunkserver(url)
+                    url_to_delete.append(url)
+                for url in url_to_delete:
+                    del self.url_heartbeat_time[url]
+        
+        """
+        Heartbeat:
+        Collects heartbeats from the chunkservers and stores the time when it was received. 
+        The server also sends a list of chunks that it has, and the master will answer with the chunks
+        that it has no metadata for. The chunks will be deleted accordingly. 
+        """
+
+        def heartbeat(self, url, chunk_ids):
+            print('Heartbeat received from', url)
+            self.url_heartbeat_time[url] = time.time()
+            #if a server that was down sends a heartbeat or scan for deleted chunk ids
+            if url not in self.chunkserverurl_to_proxy:
+                self.chunkserverurl_to_proxy[url] = ServerProxy(url)
+                deleted_chunkids = self.link_with_master(url, chunk_ids)
+                if len(deleted_chunkids)>0:
+                    print('No metadata for:', deleted_chunkids)
+                return deleted_chunkids
+            
+            deleted_chunkids =[]
+            for chunk_id, version in chunk_ids:
+                if chunk_id not in self.filename_to_chunks:
+                    deleted_chunkids.append(chunk_id)
+                if len(deleted_chunkids)>0:
+                    print('No metadata for:', deleted_chunkids)
+                return deleted_chunkids
+        
+        """
+        collect_garbage
+
+        Runs in the background to check all the filenames that have been deleted. If the file has been deleted
+        and the deletion wait time has passed, the metadata has also been deleted. 
+        """
+
+        def collect_garbage(self):
+            
+            #Iterate through files names and remmove old files
+
+            files_to_delete = []
+            for filename in self.filename_to_chunks:
+                f = self.filename_to_chunks[filename]
+                if f.deleted:
+                    if time.time()> f.deleted_time + self.deleted_file_duration:
+                        files_to_delete.appemd(filename)
+            if len(files_to_delete) > 0:
+                print('Delete Files:', files_to_delete)
+            for filename in files_to_delete:
+                del self.filename_to_chunks[filename]
+
+            #Iterate though chanks name and remove unused chunks
+            chunks_delete = []
+            for chunkId in self.chunk_filename:
+                f = self.chunk_filename[chunkId]
+                deleted_f = 'DELETED_' + f
+                if f not in self.filename_to_chunks and deleted_f not in self.filename_to_chunks:
+                    chunks_delete.append(chunkId)
+            if len(chunks_delete) > 0:
+                print('Delete Chunks:', chunks_delete)
+            for chunkID in chunks_delete:
+                del self.chunk_filename[chunkId]
+                del self.chunk_urls[chunkId]
+            #If master crashes, chunk_primary is lost, so this may be gone from memory
+            if chunkId in self.chunk_primary:
+                del self.chunk_to_primary[chunkId]
+            
+            if len(files_to_delete) > 0 or len (chunks_delete) >0:
+                self.flush_log()
+            print('Garbage collection', self.filename_to_chunks, self.chunk_filename)
+        
