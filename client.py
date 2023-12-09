@@ -1,7 +1,7 @@
 import socket
 
 HOST = '127.0.0.1'
-PORT = 8080
+PORT = 8080  # Match the metadata server's port
 
 def send_request(request, filename='', content=None):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

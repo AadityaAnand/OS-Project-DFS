@@ -1,23 +1,37 @@
 import socket
 import json
+import random
+import os
 
 METADATA_FILE = 'metadata.json'
-
-def get_primary_server_id():
-    # Replace this logic with your actual mechanism to determine the primary server ID
-    # For example, you could read it from a shared configuration or a central authority
-    server_ids = [1, 2, 3]  # Sample server IDs
-    return max(server_ids)
+NUM_SERVERS = 3
+PORT_START = 8080
 
 def get_primary_server():
-    primary_server_id = get_primary_server_id()
-    primary_server_port = 8080 + primary_server_id
-    return {'id': primary_server_id, 'port': primary_server_port}
+    # Read metadata from the JSON file
+    with open(METADATA_FILE, 'r') as file:
+        metadata_list = json.load(file)
+
+    # Select the primary server with the highest server ID
+    primary_server_id = max([server['id'] for server in metadata_list]) if metadata_list else 1
+    return {'id': primary_server_id, 'port': PORT_START + primary_server_id - 1}
+
+def save_metadata(metadata):
+    # Read existing metadata from the JSON file
+    with open(METADATA_FILE, 'r') as file:
+        metadata_list = json.load(file)
+
+    # Update metadata list
+    metadata_list.append(metadata)
+
+    # Write updated metadata back to the JSON file
+    with open(METADATA_FILE, 'w') as file:
+        json.dump(metadata_list, file, indent=2)
 
 def handle_client_request(client_socket, client_address):
     # Get primary server information
     primary_server = get_primary_server()
-    
+
     # Send primary server information to the client
     client_socket.sendall(json.dumps(primary_server).encode('utf-8'))
 
@@ -25,29 +39,42 @@ def handle_client_request(client_socket, client_address):
     metadata = client_socket.recv(1024).decode('utf-8')
     metadata = json.loads(metadata)
 
-    # Store metadata in a JSON file
-    with open(METADATA_FILE, 'a') as metadata_file:
-        metadata_file.write(json.dumps(metadata) + '\n')
+    # Save metadata to the JSON file
+    save_metadata(metadata)
 
     print(f"Metadata received and stored: {metadata}")
 
+    # Debug statement to print the current metadata list
+    print("Current metadata list:", metadata)
+
+def initialize_metadata_file():
+    # Initialize metadata file if it doesn't exist
+    if not os.path.exists(METADATA_FILE):
+        with open(METADATA_FILE, 'w') as file:
+            json.dump([], file)
+
 def metadata_server():
+    initialize_metadata_file()
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind(('127.0.0.1', 8081))  # Adjust the port as needed
+        server_socket.bind(('127.0.0.1', 8081))  # Bind to a dynamically assigned port
+        _, port = server_socket.getsockname()
         server_socket.listen()
 
-        print("Metadata Server is listening for client connections...")
+        print(f"Metadata Server is listening on port {port} for client connections...")
+        print(f"Metadata Directory: {os.path.abspath(METADATA_FILE)}")
 
         while True:
             client_socket, client_address = server_socket.accept()
             print(f"Connected to client: {client_address}")
 
-            # Handle client request in a separate thread or process
+            # Print metadata connection details
+            print(f"Metadata Server Connection Details:")
+            print(f"  IP Address: {'127.0.0.1'}")
+            print(f"  Port: {port}")
+
+            # Handle client request
             handle_client_request(client_socket, client_address)
 
 if __name__ == '__main__':
-    primary_server_id = get_primary_server_id()
-    print(f"Primary server ID: {primary_server_id}")
-
-    # Start metadata server
     metadata_server()

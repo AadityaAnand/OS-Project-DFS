@@ -4,7 +4,7 @@ import multiprocessing
 import random
 
 HOST = '127.0.0.1'
-PORT_START = 8080
+PORT_START = 8081
 NUM_SERVERS = 3  # Adjust the number of servers as needed
 
 files_directory = 'files'
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     primary_server_id = max(server_ids)
     print(f"Primary server ID: {primary_server_id}")
 
-    for i in range(NUM_SERVERS):
+    for i in range(1, NUM_SERVERS):
         port = PORT_START + i
         process = multiprocessing.Process(target=server_process, args=(port, server_ids[i]))
         processes.append(process)
