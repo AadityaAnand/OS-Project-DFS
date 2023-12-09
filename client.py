@@ -1,9 +1,9 @@
-import socket
+import socket, json
 
-HOST = '127.0.0.1'
-PORT = 8080  # Match the metadata server's port
+#HOST = '127.0.0.1'
+#PORT = 8080  # Match the metadata server's port
 
-def send_request(request, filename='', content=None):
+def send_request(HOST, PORT, request, filename='', content=None):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
         data = f'{request}|{filename}|{content}' if content else f'{request}|{filename}'
@@ -26,8 +26,15 @@ while True:
 
     if choice == '1':
         filename = input("Enter the filename to create: ")
-        response = send_request('CREATE', filename)
-        print(response)
+        response = send_request("127.0.0.1", 8080,'CREATE', filename)
+        if response:
+            response = json.loads(response)
+            print(response)
+        id = response.primary_server_id
+        port = response.port
+
+        print(send_request(id, port, 'CREATE',filename))
+
 
     elif choice == '2':
         filename = input("Enter the filename to read: ")

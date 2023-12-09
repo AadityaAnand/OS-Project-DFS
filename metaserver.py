@@ -14,6 +14,7 @@ def get_primary_server():
 
     # Select the primary server with the highest server ID
     primary_server_id = max([server['id'] for server in metadata_list]) if metadata_list else 1
+    print(primary_server_id, PORT_START)
     return {'id': primary_server_id, 'port': PORT_START + primary_server_id - 1}
 
 def save_metadata(metadata):
@@ -53,11 +54,20 @@ def initialize_metadata_file():
         with open(METADATA_FILE, 'w') as file:
             json.dump([], file)
 
+def send_request(request,HOST, PORT, filename='', content=None):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+        data = f'{request}|{filename}|{content}' if content else f'{request}|{filename}'
+        s.sendall(data.encode('utf-8'))
+        response = s.recv(1024).decode('utf-8')
+    return response
+
+
 def metadata_server():
     initialize_metadata_file()
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind(('127.0.0.1', 8081))  # Bind to a dynamically assigned port
+        server_socket.bind(('127.0.0.1', 8080))  # Bind to a dynamically assigned port
         _, port = server_socket.getsockname()
         server_socket.listen()
 
