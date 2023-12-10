@@ -15,7 +15,7 @@ def get_primary_server():
     # Select the primary server with the highest server ID
     primary_server_id = max([server['id'] for server in metadata_list]) if metadata_list else 1
     print(primary_server_id, PORT_START)
-    return {'id': primary_server_id, 'port': PORT_START + primary_server_id - 1}
+    return {'id': primary_server_id, 'port': 8012}
 
 def save_metadata(metadata):
     # Read existing metadata from the JSON file
@@ -31,22 +31,19 @@ def save_metadata(metadata):
 
 def handle_client_request(client_socket, client_address):
     # Get primary server information
-    primary_server = get_primary_server()
+    #primary_server = get_primary_server()
 
     # Send primary server information to the client
-    client_socket.sendall(json.dumps(primary_server).encode('utf-8'))
-
+    #client_socket.sendall(json.dumps(primary_server).encode('utf-8'))
+    print("Mrts")
     # Receive metadata from the client
-    metadata = client_socket.recv(1024).decode('utf-8')
-    metadata = json.loads(metadata)
+    response = client_socket.recv(1024).decode('utf-8')
+    message, filename = response.split("|")
+    
+    if message == "PRIMARY":
+        primary = get_primary_server()
+        return client_socket.sendall(json.dumps(primary).encode('utf-8'))
 
-    # Save metadata to the JSON file
-    save_metadata(metadata)
-
-    print(f"Metadata received and stored: {metadata}")
-
-    # Debug statement to print the current metadata list
-    print("Current metadata list:", metadata)
 
 def initialize_metadata_file():
     # Initialize metadata file if it doesn't exist
@@ -82,6 +79,7 @@ def metadata_server():
             print(f"Metadata Server Connection Details:")
             print(f"  IP Address: {'127.0.0.1'}")
             print(f"  Port: {port}")
+
 
             # Handle client request
             handle_client_request(client_socket, client_address)

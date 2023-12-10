@@ -17,7 +17,7 @@ def menu():
     print("2. Read from a file")
     print("3. Write to a file")
     print("4. Delete a file")
-    print("5. Seek in a file")
+    print("5. List files")
     print("6. Quit")
 
 while True:
@@ -26,35 +26,55 @@ while True:
 
     if choice == '1':
         filename = input("Enter the filename to create: ")
-        response = send_request("127.0.0.1", 8080,'CREATE', filename)
+        response = send_request("127.0.0.1", 8080,'PRIMARY', filename)
         if response:
             response = json.loads(response)
-            print(response)
-        id = response.primary_server_id
-        port = response.port
 
-        print(send_request(id, port, 'CREATE',filename))
+        id = response["id"]
+        port = response["port"]
+        print(send_request("127.0.0.1", port, 'CREATE',filename))
 
 
     elif choice == '2':
         filename = input("Enter the filename to read: ")
-        response = send_request('READ', filename)
-        print(response)
+        response = send_request("127.0.0.1", 8080,'PRIMARY', filename)
+        if response:
+            response = json.loads(response)
+
+        id = response["id"]
+        port = response["port"]
+        print(send_request("127.0.0.1", port, 'READ',filename))
+        
 
     elif choice == '3':
         filename = input("Enter the filename to write to: ")
         content = input("Enter the content to write: ")
-        response = send_request('WRITE', filename, content)
-        print(response)
+        response = send_request("127.0.0.1", 8080,'PRIMARY', filename)
+        if response:
+            response = json.loads(response)
+
+        id = response["id"]
+        port = response["port"]
+        print(send_request("127.0.0.1", port, 'WRITE',filename, content))
 
     elif choice == '4':
         filename = input("Enter the filename to delete: ")
-        response = send_request('DELETE', filename)
-        print(response)
+        response = send_request("127.0.0.1", 8080,'PRIMARY', filename)
+        if response:
+            response = json.loads(response)
+
+        id = response["id"]
+        port = response["port"]
+        print(send_request("127.0.0.1", port, 'WRITE',filename))
 
     elif choice == '5':
-        response = send_request('SEEK')
-        print(response)
+        response = send_request("127.0.0.1", 8080,'PRIMARY', filename)
+        if response:
+            response = json.loads(response)
+
+        id = response["id"]
+        port = response["port"]
+        print(send_request("127.0.0.1", port, 'LIST',filename))
 
     elif choice == '6':
         print("Exiting the client.")
