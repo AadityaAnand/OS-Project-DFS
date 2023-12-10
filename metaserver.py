@@ -4,10 +4,11 @@ import random
 import os
 
 METADATA_FILE = 'metadata.json'
-NUM_SERVERS = 3
+NUM_SERVERS = 4
 PORT_START = 8080
 IPS = [8081,8082,8083,8084]
 PRIMARY = None
+ip = []
 
 def choose_primary():
     new_ips = [ip for ip in IPS if ip!=PRIMARY]
@@ -52,6 +53,7 @@ def handle_client_request(client_socket, client_address):
     
     if message == "PRIMARY":
         return client_socket.sendall(json.dumps(PRIMARY).encode('utf-8'))
+    
 
 
 def initialize_metadata_file():
@@ -95,6 +97,8 @@ def metadata_server():
 
 # def select_primary():
 
+def send_primary():
+    pass
 
 if __name__ == '__main__':
     metadata_server()

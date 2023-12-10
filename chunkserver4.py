@@ -1,8 +1,20 @@
 import socket
 import json
 import os
+import random
 
 FILES_FOLDER = 'files'
+
+IPS = [8081,8082,8083]
+
+
+def send_request(HOST, PORT, request, filename='', content=None):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+        data = f'{request}|{filename}|{content}' if content else f'{request}|{filename}'
+        s.sendall(data.encode('utf-8'))
+        response = s.recv(1024).decode('utf-8')
+    return response
 
 def handle_client_request(client_socket, request_data):
     # Extract information from the client's request
@@ -100,6 +112,48 @@ def server():
 
             # Handle the client's request
             handle_client_request(client_socket, request_data)
+
+
+def is_primary():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect(('127.0.0.1', 8080))
+    
+    message = "PRIMARY"
+    s.sendall(message.encode('utf-8'))
+    response = s.recv(1024).decode('utf-8')
+    if response:
+        response = json.loads(response)
+
+    id = response["id"]
+    port = response["port"]
+
+    if str(port) == "8084":
+        return True
+    else:
+        return False
+
+def replication_file(filename):
+    if is_primary():
+        chunkserver_1,chunkserver_2 = random.sample(IPS,2)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(('127.0.0.1', chunkserver_1))
+            response = send_request("127.0.0.1", chunkserver_1,'PRIMARY', filename)
+            if response:
+                response = json.loads(response)
+
+            id = response["id"]
+            port = response["port"]
+            print(send_request("127.0.0.1", port, 'CREATE',filename))
+        
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(('127.0.0.1', chunkserver_2))
+            response = send_request("127.0.0.1", chunkserver_2,'PRIMARY', filename)
+            if response:
+                response = json.loads(response)
+
+            id = response["id"]
+            port = response["port"]
+            print(send_request("127.0.0.1", port, 'CREATE',filename))
 
 if __name__ == '__main__':
     # Run the server
