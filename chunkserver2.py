@@ -15,7 +15,7 @@ def handle_client_request(client_socket, request_data):
 
     if request == 'PRIMARY':
         # For simplicity, always return a fixed secondary server ID and port
-        secondary_server = {'id': 2, 'port': 8081}
+        secondary_server = {'id': 2, 'port': 8082}
         client_socket.sendall(json.dumps(secondary_server).encode('utf-8'))
     elif request == 'CREATE':
         response = create_file(filename)
